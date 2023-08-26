@@ -1,16 +1,15 @@
 package web
 
 import (
-	"basic-go/webook/internal/domain"
-	"basic-go/webook/internal/service"
 	"fmt"
+	"gitee.com/geekbang/basic-go/webook/internal/domain"
+	"gitee.com/geekbang/basic-go/webook/internal/service"
 	regexp "github.com/dlclark/regexp2"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	jwt "github.com/golang-jwt/jwt/v5"
 	"net/http"
 	"time"
-	"unicode/utf8"
 )
 
 // UserHandler 我准备在它上面定义跟用户有关的路由
@@ -18,23 +17,19 @@ type UserHandler struct {
 	svc         *service.UserService
 	emailExp    *regexp.Regexp
 	passwordExp *regexp.Regexp
-	birthdayExp *regexp.Regexp
 }
 
 func NewUserHandler(svc *service.UserService) *UserHandler {
 	const (
 		emailRegexPattern    = "^\\w+([-+.]\\w+)*@\\w+([-.]\\w+)*\\.\\w+([-.]\\w+)*$"
 		passwordRegexPattern = `^(?=.*[A-Za-z])(?=.*\d)(?=.*[$@$!%*#?&])[A-Za-z\d$@$!%*#?&]{8,}$`
-		birthdayPattern      = `\d{4}-\d{2}-\d{2}`
 	)
 	emailExp := regexp.MustCompile(emailRegexPattern, regexp.None)
 	passwordExp := regexp.MustCompile(passwordRegexPattern, regexp.None)
-	birthdayExp := regexp.MustCompile(birthdayPattern, regexp.None)
 	return &UserHandler{
 		svc:         svc,
 		emailExp:    emailExp,
 		passwordExp: passwordExp,
-		birthdayExp: birthdayExp,
 	}
 }
 
@@ -49,10 +44,9 @@ func (u *UserHandler) RegisterRoutes(server *gin.Engine) {
 	ug := server.Group("/users")
 	ug.GET("/profile", u.ProfileJWT)
 	ug.POST("/signup", u.SignUp)
-	ug.POST("/login", u.Login)
-	//ug.POST("/login", u.LoginJWT)
+	//ug.POST("/login", u.Login)
+	ug.POST("/login", u.LoginJWT)
 	ug.POST("/edit", u.Edit)
-	ug.POST("/profile", u.Profile)
 }
 
 func (u *UserHandler) SignUp(ctx *gin.Context) {
@@ -136,7 +130,7 @@ func (u *UserHandler) LoginJWT(ctx *gin.Context) {
 
 	claims := UserClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 30)),
 		},
 		Uid:       user.Id,
 		UserAgent: ctx.Request.UserAgent(),
@@ -205,50 +199,7 @@ func (u *UserHandler) Logout(ctx *gin.Context) {
 }
 
 func (u *UserHandler) Edit(ctx *gin.Context) {
-	sess := sessions.Default(ctx)
-	id := sess.Get("userId")
-	userId, _ := id.(int64)
-	type Request struct {
-		Nickname string `json:"nickname"`
-		Birthday string `json:"birthday"`
-		Brief    string `json:"brief"`
-	}
 
-	var req Request
-	if err := ctx.Bind(&req); err != nil {
-		return
-	}
-
-	ok, err := u.birthdayExp.MatchString(req.Birthday)
-	if err != nil {
-		// 记录日志
-		ctx.String(http.StatusOK, "系统错误")
-		return
-	}
-	if !ok {
-		ctx.String(http.StatusOK, "生日格式不正确（格式:1992-01-01）")
-		return
-	}
-
-	if utf8.RuneCountInString(req.Nickname) > 255 {
-		ctx.String(http.StatusOK, "昵称不超过255个字符")
-		return
-	}
-
-	if utf8.RuneCountInString(req.Brief) > 255 {
-		ctx.String(http.StatusOK, "个人简介不超过255个字符")
-		return
-	}
-
-	// 调用一下 svc 的方法
-	err = u.svc.Edit(ctx, domain.User{
-		Id:       userId,
-		Nickname: req.Nickname,
-		Birthday: req.Birthday,
-		Brief:    req.Brief,
-	})
-
-	ctx.String(http.StatusOK, "修改成功")
 }
 
 func (u *UserHandler) ProfileJWT(ctx *gin.Context) {
@@ -272,25 +223,7 @@ func (u *UserHandler) ProfileJWT(ctx *gin.Context) {
 }
 
 func (u *UserHandler) Profile(ctx *gin.Context) {
-
-	sess := sessions.Default(ctx)
-	id := sess.Get("userId")
-	userId, _ := id.(int64)
-
-	user, err := u.svc.GetProfile(ctx, userId)
-	if err != nil {
-		ctx.String(http.StatusOK, "系统错误")
-		return
-	}
-	ctx.JSONP(http.StatusOK, struct {
-		Nickname string
-		Birthday string
-		Brief    string
-	}{
-		Nickname: user.Nickname,
-		Birthday: user.Birthday,
-		Brief:    user.Brief,
-	})
+	ctx.String(http.StatusOK, "这是你的 Profile")
 }
 
 type UserClaims struct {

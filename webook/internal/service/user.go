@@ -1,10 +1,10 @@
 package service
 
 import (
-	"basic-go/webook/internal/domain"
-	"basic-go/webook/internal/repository"
 	"context"
 	"errors"
+	"gitee.com/geekbang/basic-go/webook/internal/domain"
+	"gitee.com/geekbang/basic-go/webook/internal/repository"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -36,6 +36,7 @@ func (svc *UserService) Login(ctx context.Context, email, password string) (doma
 		// DEBUG
 		return domain.User{}, ErrInvalidUserOrPassword
 	}
+
 	return u, nil
 }
 
@@ -50,10 +51,8 @@ func (svc *UserService) SignUp(ctx context.Context, u domain.User) error {
 	return svc.repo.Create(ctx, u)
 }
 
-func (svc *UserService) Edit(ctx context.Context, u domain.User) error {
-	return svc.repo.Edit(ctx, u)
-}
-
-func (svc *UserService) GetProfile(ctx context.Context, userId int64) (domain.User, error) {
-	return svc.repo.GetProfile(ctx, userId)
+func (svc *UserService) Profile(ctx context.Context,
+	id int64) (domain.User, error) {
+	u, err := svc.repo.FindById(ctx, id)
+	return u, err
 }

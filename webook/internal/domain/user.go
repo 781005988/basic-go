@@ -10,9 +10,6 @@ type User struct {
 	Id       int64
 	Email    string
 	Password string
-	Nickname string
-	Birthday string
-	Brief    string
 	Ctime    time.Time
 }
 
